@@ -35,21 +35,22 @@
   }
   #hint.fade { opacity: 0; }
 
-  .slide {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    text-align: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.8s ease;
-  }
-  .slide.active {
-    opacity: 1;
-  }
+.slide {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: column;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+  padding-top: 30vh;
+}
+.slide.active {
+  opacity: 1;
+}
 
   #banner {
     position: relative;
