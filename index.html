@@ -86,6 +86,23 @@
     background-clip: text;
     color: transparent;
     margin-bottom: 12px;
+    cursor: pointer;
+    pointer-events: auto;
+    display: inline-block;
+    position: relative;
+  }
+  .slide h1::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #f97316;
+    opacity: 0.6;
   }
   .slide p {
     color: var(--muted);
@@ -123,7 +140,51 @@
     cursor: default;
     pointer-events: none;
   }
+  .page-picker-list {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 200px;
+    max-width: min(80vw, 360px);
+    max-height: 40vh;
+    overflow-y: auto;
+    background: #0f151c;
+    border: 1px solid rgba(249, 115, 22, 0.4);
+    border-radius: 14px;
+    padding: 6px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    z-index: 6;
+    pointer-events: auto;
+  }
+  .page-picker-list.open {
+    display: flex;
+  }
+  .page-picker-item {
+    font-size: 14px;
+    color: var(--ink);
+    text-align: left;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  .page-picker-item:hover {
+    background: rgba(249, 115, 22, 0.15);
+  }
+  .page-picker-item.current {
+    color: #f97316;
+    font-weight: 600;
+  }
 </style>
+
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -247,6 +308,52 @@
     loading="lazy">
   </iframe>
 </div>
+
+<div class="slide" id="slide12"><h1>world</h1>
+<p>for me, everyhing about you is all I want or need 🧡<br>
+the way you are and everything about you defines my world 🧡<br>
+you don't need to do anything but be yourself and just love me like I love you 🧡<br>
+</p>
+  <iframe
+    style="border-radius:12px; margin-top:20px; pointer-events:auto;"
+    src="https://open.spotify.com/embed/track/7K3Lc3TfSR14aTOjIH7TUj?utm_source=generator"
+    width="320" height="152" frameborder="0"
+    allowfullscreen=""
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy">
+  </iframe>
+</div>
+
+<div class="slide" id="slide13"><h1>reason</h1>
+<p>time without you seems to slow down🧡<br>
+but once my day starts with you time goes by too fast 🧡<br>
+at the end of the night I'm always looking forward to the next day so we can spend more together 🧡<br>
+</p>
+  <iframe
+    style="border-radius:12px; margin-top:20px; pointer-events:auto;"
+    src="https://open.spotify.com/embed/track/3kvXzx6T9Nk1T8m6g7vdZH?utm_source=generator"
+    width="320" height="152" frameborder="0"
+    allowfullscreen=""
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy">
+  </iframe>
+</div>
+
+<div class="slide" id="slide14"><h1>universe</h1>
+<p>thinking about you and us makes me feel like I'm in space 🧡<br>
+just like space, our love feels so vast and infinite 🧡<br>
+there's always so much to explore and the excitement makes me long for you 🧡<br>
+</p>
+  <iframe
+    style="border-radius:12px; margin-top:20px; pointer-events:auto;"
+    src="https://open.spotify.com/embed/track/0iIvDVbTgFV8a06FiVSjxO?utm_source=generator"
+    width="320" height="152" frameborder="0"
+    allowfullscreen=""
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy">
+  </iframe>
+</div>
+  
   
 <div id="hint"></div>
 <div class="nav">
@@ -254,21 +361,80 @@
   <button id="forward">Forward &rarr;</button>
 </div>
 
+<div class="page-picker-list" id="pagePickerList"></div>
+
 <script>
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
   const hint = document.getElementById('hint');
   const backBtn = document.getElementById('back');
   const forwardBtn = document.getElementById('forward');
+  const pagePickerList = document.getElementById('pagePickerList');
   const slides = Array.from(document.querySelectorAll('.slide'));
   let currentSlide = 0;
   let ripples = [];
   let bursts = [];
   let lastMove = 0;
 
+  const pageLabels = slides.map((slide, i) => {
+    const h1 = slide.querySelector('h1');
+    return h1 ? h1.textContent.trim() : '🧡';
+  });
+
+  const pickerItems = pageLabels.map((label, i) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'page-picker-item';
+    item.textContent = label;
+    item.addEventListener('click', () => {
+      goTo(i);
+      closePicker();
+    });
+    pagePickerList.appendChild(item);
+    return item;
+  });
+
+  function openPickerNear(el) {
+    const rect = el.getBoundingClientRect();
+    pagePickerList.classList.add('open');
+    const listRect = pagePickerList.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - listRect.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - listRect.width - 8));
+    let top = rect.bottom + 10;
+    if (top + listRect.height > window.innerHeight - 8) {
+      top = rect.top - listRect.height - 10;
+    }
+    pagePickerList.style.left = `${left}px`;
+    pagePickerList.style.top = `${top}px`;
+  }
+  function closePicker() {
+    pagePickerList.classList.remove('open');
+  }
+
+  slides.forEach((slide) => {
+    const h1 = slide.querySelector('h1');
+    if (!h1) return;
+    h1.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (pagePickerList.classList.contains('open')) {
+        closePicker();
+      } else {
+        openPickerNear(h1);
+      }
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!pagePickerList.contains(e.target)) closePicker();
+  });
+  window.addEventListener('resize', closePicker);
+
   function updateNavState() {
     backBtn.disabled = currentSlide === 0;
     forwardBtn.disabled = currentSlide === slides.length - 1;
+    pickerItems.forEach((item, i) => {
+      item.classList.toggle('current', i === currentSlide);
+    });
   }
 
   function goTo(index) {
@@ -276,6 +442,7 @@
     currentSlide = index;
     slides[currentSlide].classList.add('active');
     hint.classList.add('fade');
+    closePicker();
     updateNavState();
     if (currentSlide === slides.length - 1) {
       explodeHearts();
