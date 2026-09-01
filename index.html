@@ -381,6 +381,18 @@ there's always so much to explore and the excitement makes me long for you 🧡<
     return h1 ? h1.textContent.trim() : '🧡';
   });
 
+  function slugify(str) {
+    return str
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  // First slide keeps a clean, hash-less URL; every other slide is named after its <h1>.
+  const slugs = slides.map((slide, i) => (i === 0 ? '' : slugify(pageLabels[i]) || `page-${i + 1}`));
+
   const pickerItems = pageLabels.map((label, i) => {
     const item = document.createElement('button');
     item.type = 'button';
@@ -437,7 +449,8 @@ there's always so much to explore and the excitement makes me long for you 🧡<
     });
   }
 
-  function goTo(index) {
+  // Updates the visible slide only — does not touch the URL/history.
+  function setActiveSlide(index) {
     slides[currentSlide].classList.remove('active');
     currentSlide = index;
     slides[currentSlide].classList.add('active');
@@ -449,6 +462,28 @@ there's always so much to explore and the excitement makes me long for you 🧡<
     }
   }
 
+  // Updates the slide AND pushes a new URL/history entry named after its header.
+  function goTo(index) {
+    setActiveSlide(index);
+    const slug = slugs[index];
+    const newUrl = slug ? `${location.pathname}${location.search}#${slug}` : `${location.pathname}${location.search}`;
+    if (location.hash.slice(1) !== slug) {
+      history.pushState({ slideIndex: index }, '', newUrl);
+    }
+  }
+
+  // Browser Back/Forward buttons should move through slides too.
+  window.addEventListener('popstate', (e) => {
+    let idx = 0;
+    if (e.state && typeof e.state.slideIndex === 'number') {
+      idx = e.state.slideIndex;
+    } else {
+      const found = slugs.indexOf(location.hash.slice(1));
+      idx = found !== -1 ? found : 0;
+    }
+    if (idx !== currentSlide) setActiveSlide(idx);
+  });
+
   backBtn.addEventListener('click', () => {
     if (currentSlide > 0) goTo(currentSlide - 1);
   });
@@ -456,6 +491,15 @@ there's always so much to explore and the excitement makes me long for you 🧡<
   forwardBtn.addEventListener('click', () => {
     if (currentSlide < slides.length - 1) goTo(currentSlide + 1);
   });
+
+  // On first load, jump straight to the slide named in the URL hash, if any.
+  (function initFromHash() {
+    const initialIdx = slugs.indexOf(location.hash.slice(1));
+    if (initialIdx !== -1 && initialIdx !== currentSlide) {
+      setActiveSlide(initialIdx);
+    }
+    history.replaceState({ slideIndex: currentSlide }, '', location.href);
+  })();
 
   updateNavState();
 
